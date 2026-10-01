@@ -219,9 +219,9 @@ class ViewPagerContainer: UIViewController {
         for i in 0..<titles.count{
             let titleLabel = UIButton()
             titleLabel.titleLabel?.font = titleFont;
-            titleLabel.setTitle(titles[i], for: UIControlState.normal)
+            titleLabel.setTitle(titles[i], for: UIControl.State.normal)
             titleLabel.titleLabel?.textAlignment = NSTextAlignment.center
-            titleLabel.setTitleColor(titleColor, for: UIControlState.normal)
+            titleLabel.setTitleColor(titleColor, for: UIControl.State.normal)
             titleLabel.tag = i
             titleLabel.addTarget(self, action:#selector(ISViewPagerContainer.onClickTitle(_:)), for:.touchUpInside)
             titleLables.append(titleLabel)
@@ -236,7 +236,7 @@ class ViewPagerContainer: UIViewController {
         
         self.view.addSubview(titleBar)
         
-        viewPages.forEach({  contentView.addSubview($0.view) ;self.addChildViewController($0)})
+        viewPages.forEach({  contentView.addSubview($0.view) ;self.addChild($0)})
         contentView.delegate = scrollDelegate;
         contentView.isPagingEnabled = true;
         contentView.showsHorizontalScrollIndicator = false;
@@ -297,10 +297,10 @@ class ViewPagerContainer: UIViewController {
             }
         }
         let curLabel = titleLables[curIndex]
-        curLabel.setTitleColor(titleColor, for: UIControlState.normal)
+        curLabel.setTitleColor(titleColor, for: UIControl.State.normal)
         curIndex = index;
         let lable = titleLables[curIndex]
-        lable.setTitleColor(titleSelectedColor, for: UIControlState.normal)
+        lable.setTitleColor(titleSelectedColor, for: UIControl.State.normal)
         UIView.animate(withDuration: 0.2, animations: { () -> Void in
             self.indicator.frame = CGRect(x: CGFloat(index)*self.titleItemWidth, y:self.titleBarHeight-self.indicatorHeight, width: self.titleItemWidth, height: self.indicatorHeight)
         })

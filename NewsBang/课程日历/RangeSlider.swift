@@ -165,7 +165,7 @@ class RangeSlider:UIControl{
         
         updateLayerFrames()
         
-        sendActions(for: UIControlEvents.valueChanged)
+        sendActions(for: UIControl.Event.valueChanged)
         return true
     }
     

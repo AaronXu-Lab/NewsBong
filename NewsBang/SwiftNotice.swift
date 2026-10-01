@@ -67,9 +67,16 @@ enum NoticeType{
 
 class SwiftNotice: NSObject {
     
-    static var windows = Array<UIWindow!>()
-    static let rv = UIApplication.shared.keyWindow?.subviews.first as UIView!
-    static var timer: DispatchSource!
+    static var windows = [UIWindow]()
+    static var rv: UIView? { UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap { $0.windows }.first { $0.isKeyWindow } }
+    static func makeWindow() -> UIWindow {
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first { $0.activationState == .foregroundActive }
+        let window = scene.map { UIWindow(windowScene: $0) } ?? UIWindow(frame: .zero)
+        window.rootViewController = UIViewController()
+        window.isUserInteractionEnabled = false
+        return window
+    }
+    static var timer: DispatchSourceTimer!
     static var timerTimes = 0
     
     /* just for iOS 8
@@ -95,7 +102,7 @@ class SwiftNotice: NSObject {
     @discardableResult
     static func noticeOnStatusBar(_ text: String, autoClear: Bool, autoClearTime: Int) -> UIWindow{
         let frame = UIApplication.shared.statusBarFrame
-        let window = UIWindow()
+        let window = makeWindow()
         window.backgroundColor = UIColor.clear
         let view = UIView()
         view.backgroundColor = UIColor(red: 0x00/0x100, green: 0x00/0x100, blue: 0x00/0x100, alpha: 1)
@@ -125,7 +132,7 @@ class SwiftNotice: NSObject {
             window.transform = CGAffineTransform(rotationAngle: CGFloat(degree * Double.pi / 180))
         }
         
-        window.windowLevel = UIWindowLevelStatusBar
+        window.windowLevel = UIWindow.Level.statusBar
         window.isHidden = false
         window.addSubview(view)
         windows.append(window)
@@ -149,7 +156,7 @@ class SwiftNotice: NSObject {
     @discardableResult
     static func wait(_ imageNames: Array<UIImage> = Array<UIImage>(), timeInterval: Int = 0) -> UIWindow {
         let frame = CGRect(x: 0, y: 0, width: 78, height: 78)
-        let window = UIWindow()
+        let window = makeWindow()
         window.backgroundColor = UIColor.clear
         let mainView = UIView()
         mainView.layer.cornerRadius = 12
@@ -159,9 +166,9 @@ class SwiftNotice: NSObject {
             if imageNames.count > timerTimes {
                 let iv = UIImageView(frame: frame)
                 iv.image = imageNames.first!
-                iv.contentMode = UIViewContentMode.scaleAspectFit
+                iv.contentMode = UIView.ContentMode.scaleAspectFit
                 mainView.addSubview(iv)
-                timer = DispatchSource.makeTimerSource(flags: DispatchSource.TimerFlags(rawValue: UInt(0)), queue: DispatchQueue.main) as! DispatchSource
+                timer = DispatchSource.makeTimerSource(flags: DispatchSource.TimerFlags(rawValue: UInt(0)), queue: DispatchQueue.main)
                 timer.schedule(deadline: DispatchTime.now(), repeating: DispatchTimeInterval.milliseconds(timeInterval))
                 timer.setEventHandler(handler: { () -> Void in
                     let name = imageNames[timerTimes % imageNames.count]
@@ -171,7 +178,7 @@ class SwiftNotice: NSObject {
                 timer.resume()
             }
         } else {
-            let ai = UIActivityIndicatorView(activityIndicatorStyle: UIActivityIndicatorViewStyle.whiteLarge)
+            let ai = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.whiteLarge)
             ai.frame = CGRect(x: 21, y: 21, width: 36, height: 36)
             ai.startAnimating()
             mainView.addSubview(ai)
@@ -179,7 +186,7 @@ class SwiftNotice: NSObject {
         
         window.frame = frame
         mainView.frame = frame
-        window.center = rv!.center
+        window.center = rv?.center ?? CGPoint(x: 100, y: 100)
         
         if let version = Double(UIDevice.current.systemVersion),
             version < 9.0 {
@@ -189,7 +196,7 @@ class SwiftNotice: NSObject {
             window.transform = CGAffineTransform(rotationAngle: CGFloat(degree * Double.pi / 180))
         }
         
-        window.windowLevel = UIWindowLevelAlert
+        window.windowLevel = UIWindow.Level.alert
         window.isHidden = false
         window.addSubview(mainView)
         windows.append(window)
@@ -203,7 +210,7 @@ class SwiftNotice: NSObject {
     
     @discardableResult
     static func showText(_ text: String, autoClear: Bool=true, autoClearTime: Int=2) -> UIWindow {
-        let window = UIWindow()
+        let window = makeWindow()
         window.backgroundColor = UIColor.clear
         let mainView = UIView()
         mainView.layer.cornerRadius = 12
@@ -224,7 +231,7 @@ class SwiftNotice: NSObject {
         mainView.frame = superFrame
         
         label.center = mainView.center
-        window.center = rv!.center
+        window.center = rv?.center ?? CGPoint(x: 100, y: 100)
         
         if let version = Double(UIDevice.current.systemVersion),
             version < 9.0 {
@@ -234,7 +241,7 @@ class SwiftNotice: NSObject {
             window.transform = CGAffineTransform(rotationAngle: CGFloat(degree * Double.pi / 180))
         }
         
-        window.windowLevel = UIWindowLevelAlert
+        window.windowLevel = UIWindow.Level.alert
         window.isHidden = false
         window.addSubview(mainView)
         windows.append(window)
@@ -248,7 +255,7 @@ class SwiftNotice: NSObject {
     @discardableResult
     static func showNoticeWithText(_ type: NoticeType,text: String, autoClear: Bool, autoClearTime: Int) -> UIWindow {
         let frame = CGRect(x: 0, y: 0, width: 90, height: 90)
-        let window = UIWindow()
+        let window = makeWindow()
         window.backgroundColor = UIColor.clear
         let mainView = UIView()
         mainView.layer.cornerRadius = 10
@@ -276,7 +283,7 @@ class SwiftNotice: NSObject {
         
         window.frame = frame
         mainView.frame = frame
-        window.center = rv!.center
+        window.center = rv?.center ?? CGPoint(x: 100, y: 100)
         
         if let version = Double(UIDevice.current.systemVersion),
             version < 9.0 {
@@ -286,8 +293,8 @@ class SwiftNotice: NSObject {
             window.transform = CGAffineTransform(rotationAngle: CGFloat(degree * Double.pi / 180))
         }
         
-        window.windowLevel = UIWindowLevelAlert
-        window.center = rv!.center
+        window.windowLevel = UIWindow.Level.alert
+        window.center = rv?.center ?? CGPoint(x: 100, y: 100)
         window.isHidden = false
         window.addSubview(mainView)
         windows.append(window)
@@ -306,9 +313,9 @@ class SwiftNotice: NSObject {
     // just for iOS 8
     static func getRealCenter() -> CGPoint {
         if UIApplication.shared.statusBarOrientation.hashValue >= 3 {
-            return CGPoint(x: rv!.center.y, y: rv!.center.x)
+            return CGPoint(x: rv?.center.y ?? 100, y: rv?.center.x ?? 100)
         } else {
-            return rv!.center
+            return rv?.center ?? CGPoint(x: 100, y: 100)
         }
     }
 }

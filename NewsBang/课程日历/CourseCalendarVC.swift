@@ -8,7 +8,7 @@
 
 import UIKit
 import EventKit
-import AVOSCloud
+import RealmSwift
 
 class CourseCalendarVC: UIViewController {
     
@@ -175,7 +175,7 @@ class CourseCalendarVC: UIViewController {
         addBtn.setTitle("\(gradeInNumber-2000)级\(semester)\(major)🐶查询中", for: .disabled)
         print("\(gradeInNumber-2000)级\(semester)\(major)🐶查询中")
         //查询所有标记为true的条目，所有这些条目集合起来然后被转成courseItems数组，集合成一门专业
-        let queryCourseItem = AVQuery(className: "CourseItem")
+        let queryCourseItem = LocalQuery(className: "CourseItem")
         queryCourseItem.whereKey("semester", equalTo: semester)
         queryCourseItem.whereKey("gradeInNumber", equalTo: gradeInNumber)
         queryCourseItem.whereKey("major", equalTo: major)
@@ -278,7 +278,7 @@ class CourseCalendarVC: UIViewController {
             }
         }
         //添加事件
-        eventStore.requestAccess(to: .event, completion: {
+        eventStore.requestFullAccessToEvents(completion: {
             granted, error in
             if (granted) && (error == nil) {
                 //print("granted \(granted)")

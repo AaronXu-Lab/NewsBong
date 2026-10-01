@@ -31,11 +31,15 @@ class ToolsCollectionVC: UIViewController,UICollectionViewDelegate,UICollectionV
     }
     func setUI(){
         //设置collectionViewFlowLayout
-        let itemsize = UIScreen.main.bounds.width/4
+        let itemsize = max(72, toolsCollectionView.bounds.width / 4)
         layout.itemSize = CGSize(width: itemsize, height: itemsize)
         layout.minimumLineSpacing = 0
         layout.minimumInteritemSpacing = 0
         toolsCollectionView.collectionViewLayout = layout
+    }
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        layout.itemSize = CGSize(width: max(72, toolsCollectionView.bounds.width / 4), height: max(72, toolsCollectionView.bounds.width / 4))
     }
     func initParameters(){
         toolImage.append(UIImage(named: "师资队伍")!)

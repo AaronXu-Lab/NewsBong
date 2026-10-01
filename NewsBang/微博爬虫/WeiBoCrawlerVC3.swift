@@ -38,7 +38,7 @@ class WeiBoCrawlerVC3: UIViewController {
                     let filePath = docPath.appendingPathComponent("\(dir).png")
                     //不得补多少一句在这里卡主了,搜了很多地方都不知道这里怎么写,后来查文档看着需要抛出(try)可是还是不知道怎么写,于是请教了别人,才得以解决
                     do {
-                        try (UIImagePNGRepresentation(img!) as? NSData)?.write(toFile: filePath, options: NSData.WritingOptions.atomic)
+                        try (img!.pngData() as? NSData)?.write(toFile: filePath, options: NSData.WritingOptions.atomic)
                     }catch _{
                         
                     }

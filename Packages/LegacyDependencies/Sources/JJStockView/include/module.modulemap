@@ -1,0 +1,3 @@
+module JJStockView { umbrella header "JJStockView.h"
+ export *
+}

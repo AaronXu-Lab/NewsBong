@@ -7,11 +7,12 @@
 //
 
 import UIKit
-import AVOSCloud
+import RealmSwift
 
 class MyCollectionVC: UITableViewController {
     var articleItems = [ArticleItems]()
     var footViewHeight:CGFloat?
+    var showHistory = false
     override func viewDidLoad() {
         super.viewDidLoad()
         initParameters()
@@ -23,31 +24,23 @@ class MyCollectionVC: UITableViewController {
         // self.navigationItem.rightBarButtonItem = self.editButtonItem
     }
     func initParameters(){
-        let query = AVQuery(className: "Collection")
-        query.whereKey("username", equalTo: AVUser.current()?.username)
-        query.findObjectsInBackground { (objects:[Any]?, error:Error?) in
-            if error == nil{
-                for object in objects!{
-                    let tempObject = object as AnyObject
-                    print("object:\(tempObject["web_url"])")
-                    print("object:\(tempObject["name"])")
-                    print("object:\(tempObject["date"])")
-                    let name:String = tempObject["name"] as! String
-                    let date:String = tempObject["date"] as! String
-                    let url:String = tempObject["web_url"] as! String
-                    self.articleItems.append(ArticleItems(name: name, date: date, url: url))
-                }
-                self.tableView.reloadData()
+        do {
+            let realm = try Realm()
+            let records = realm.objects(LocalArticle.self)
+            articleItems = (showHistory ? records : records.filter("isFavorite == true")).sorted(byKeyPath: "visitedAt", ascending: false).map {
+                ArticleItems(name: $0.name, date: $0.date, url: $0.url)
             }
-            self.articleItems.reverse()
-        }
+            tableView.reloadData()
+        } catch { showLocalError(error) }
     }
+    override func viewWillAppear(_ animated: Bool) { super.viewWillAppear(animated); initParameters() }
     func initFootView(){
         let footView = UIView()
-        footView.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: footViewHeight!)
+        footView.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: footViewHeight ?? 24)
         footView.backgroundColor = UIColor.white
         let view = UITextView()
-        view.text = "没有内容"
+        view.text = articleItems.isEmpty ? "暂无记录" : "仅保存在本机"
+        view.isEditable = false
         view.font = UIFont.systemFont(ofSize: 8)
         view.textColor = #colorLiteral(red: 0.6000000238, green: 0.6000000238, blue: 0.6000000238, alpha: 1)
         view.sizeToFit()
@@ -75,6 +68,9 @@ class MyCollectionVC: UITableViewController {
     }
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath) as! CollegeNewsCell
+        cell.isAccessibilityElement = true
+        cell.accessibilityTraits = .button
+        cell.accessibilityLabel = articleItems[indexPath.row].name
         cell.name.text = articleItems[indexPath.row].name
         cell.date.text = articleItems[indexPath.row].date
         
@@ -87,6 +83,7 @@ class MyCollectionVC: UITableViewController {
         //print("点击了\(indexPath.row),结果\n\(articleItems[indexPath.row].url)")
         let articlePage = self.storyboard?.instantiateViewController(withIdentifier: "ArticlePage") as! ArticlePageVC
         articlePage.url = articleItems[indexPath.row].url
+        articlePage.name = articleItems[indexPath.row].name
         //print("str:\(articleItems[indexPath.row].date)")
         articlePage.date = articleItems[indexPath.row].date
         articlePage.from = "我的收藏"

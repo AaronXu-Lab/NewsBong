@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import AVOSCloud
+import RealmSwift
 
 class PersonalInfoModifyVC: UIViewController,UIImagePickerControllerDelegate,UINavigationControllerDelegate {
     
@@ -43,38 +43,20 @@ class PersonalInfoModifyVC: UIViewController,UIImagePickerControllerDelegate,UIN
         let rightBarItem = UIBarButtonItem(barButtonSystemItem: .save, target: self, action: #selector(saveChanges))
         self.navigationItem.setRightBarButton(rightBarItem, animated: true)
         
-        //如果用户已经设置过用户名，则不显示nameField
-        if nameLb.text != "未设置用户名"{
-            nameField.isHidden = true
-        }
-        // Do any additional setup after loading the view.
+        nameField.isHidden = false
+        nameField.text = name
+        emailField.isHidden = true
     }
-    @objc func saveChanges(){
-        self.pleaseWait()
-        let user = AVUser.current()
-        if changeAvatar.alpha != 1{
-            let avaData = UIImagePNGRepresentation(image.image!)
-            let avaFile = AVFile(name: "ava.jpg", data: avaData!)
-            user?["avatar"] = avaFile
-        }
-        if emailField.text != ""{
-            user?.email = emailField.text
-        }
-        if nameField.text != ""{
-            user?["fullname"] = nameField.text!
-        }
-        user?.saveInBackground({ (success:Bool, error:Error?) in
-            if success{
-                print("头像上传成功\(self.changeAvatar.alpha)")
-                //发送通知到主页
-                NotificationCenter.default.post(name: NSNotification.Name(rawValue:"reload"), object: nil)
-                self.navigationController?.popViewController(animated: true)
-            }else{
-                self.noticeTop(error!.localizedDescription)
-                print("用户更新失败:\(error?.localizedDescription)")
-            }
-            self.clearAllNotice()
-        })
+    @objc func saveChanges() {
+        do {
+            let realm = try Realm()
+            let profile = LocalProfile()
+            profile.name = nameField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "本地用户"
+            profile.avatar = image.image?.pngData() ?? Data()
+            try realm.write { realm.add(profile, update: .modified) }
+            NotificationCenter.default.post(name: Notification.Name("reload"), object: nil)
+            navigationController?.popViewController(animated: true)
+        } catch { showLocalError(error) }
     }
     @objc func avatarChange(){
         print("点击成功")
@@ -84,8 +66,8 @@ class PersonalInfoModifyVC: UIViewController,UIImagePickerControllerDelegate,UIN
         picker.allowsEditing = true
         present(picker, animated: true, completion: nil)
     }
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]) {
-        image.image = (info[UIImagePickerControllerEditedImage] as? UIImage)?.cropToSquare()
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+        image.image = (info[.editedImage] as? UIImage)?.cropToSquare()
         self.dismiss(animated: true, completion: nil)
         changeAvatar.alpha = 0.1
     }

@@ -1,0 +1,9 @@
+LegacyDependencies
+
+Sources copied from the original repository's CocoaPods checkout:
+Ji 2.1.0、JJStockView 0.0.7
+
+Each library's original license is included beside Package.swift.
+Local changes: Swift 5 / UIKit renamed APIs, access modifiers, explicit module imports, header/module-map packaging, and resource bundle lookup for SwiftPM.
+The application uses this local package to retain its original library APIs.
+RealmSwift is a separate official remote dependency pinned to 20.0.6.

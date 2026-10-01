@@ -102,7 +102,7 @@ class ZhuanPanVC: UIViewController, CAAnimationDelegate {
         rotationAnimation.toValue = rotation
         rotationAnimation.isCumulative = true
         rotationAnimation.delegate = self
-        rotationAnimation.fillMode = kCAFillModeForwards
+        rotationAnimation.fillMode = CAMediaTimingFillMode.forwards
         rotationAnimation.isRemovedOnCompletion = false
         zhuanpan.layer.add(rotationAnimation, forKey: "rotationAnimation")
     }

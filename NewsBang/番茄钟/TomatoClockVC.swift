@@ -69,7 +69,7 @@ class TomatoClockVC: UIViewController,timerDelegate {
         //设置屏幕常亮
         UIApplication.shared.isIdleTimerDisabled = false
         //保存离开图片
-        UserDefaults.standard.set(UIImagePNGRepresentation(bgImage.image!), forKey: "bgImage")
+        UserDefaults.standard.set(bgImage.image!.pngData(), forKey: "bgImage")
         //设置状态栏
         UIApplication.shared.statusBarStyle = .default
     }

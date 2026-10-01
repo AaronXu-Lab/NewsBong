@@ -108,7 +108,7 @@ class HHPickerView: UIView {
     ///   - dateFormat: 时间格式化字符串,可空
     ///   - datePickerMode: 选择器的时间模式,可空
     ///   - minAndMaxAndCurrentDateArr: 可选最小、最大时间及当前时间，可空
-    convenience init(frame: CGRect,dateFormat:NSString?,datePickerMode:UIDatePickerMode?,minAndMaxAndCurrentDateArr:[NSDate]?) {
+    convenience init(frame: CGRect,dateFormat:NSString?,datePickerMode:UIDatePicker.Mode?,minAndMaxAndCurrentDateArr:[NSDate]?) {
         self.init(frame: frame)
         pickerViewType = HHPickerViewType.time
         
@@ -172,8 +172,8 @@ class HHPickerView: UIView {
     
     //异常提示
     @objc private func showAlert(withTitle title: String?, message: String?) {
-        let alertVc = UIAlertController.init(title: title, message: message, preferredStyle: UIAlertControllerStyle.alert)
-        alertVc.addAction(UIAlertAction.init(title: "我知道了", style: UIAlertActionStyle.cancel, handler: nil))
+        let alertVc = UIAlertController.init(title: title, message: message, preferredStyle: UIAlertController.Style.alert)
+        alertVc.addAction(UIAlertAction.init(title: "我知道了", style: UIAlertAction.Style.cancel, handler: nil))
         UIApplication.shared.keyWindow?.rootViewController?.present(alertVc, animated: true, completion: nil)
     }
 }
@@ -197,7 +197,7 @@ class HHDatePicker: UIDatePicker {
     ///   - datePickerMode: 选择器的时间模式
     ///   - minAndMaxAndCurrentDateArr: 可选最小、最大时间及当前时间
     ///   - resultCallBack: 选择结果
-    convenience init(frame: CGRect,dateFormat:NSString?,datePickerMode:UIDatePickerMode?,minAndMaxAndCurrentDateArr:[NSDate]?,resultCallBack:((_ resultStr:NSString) -> Void)?) {
+    convenience init(frame: CGRect,dateFormat:NSString?,datePickerMode:UIDatePicker.Mode?,minAndMaxAndCurrentDateArr:[NSDate]?,resultCallBack:((_ resultStr:NSString) -> Void)?) {
         self.init(frame: frame)
         self.backgroundColor = UIColor.white;
         if datePickerMode != nil {
@@ -224,7 +224,7 @@ class HHDatePicker: UIDatePicker {
         self.setDate(currentDateTem as Date, animated: false)
         self.locale = Locale.init(identifier: "zh_CN")
         
-        self.addTarget(self, action: #selector(dateChange(datePicker:)), for: UIControlEvents.valueChanged)
+        self.addTarget(self, action: #selector(dateChange(datePicker:)), for: UIControl.Event.valueChanged)
         
         //默认回调当前时间
         let theDate = self.date

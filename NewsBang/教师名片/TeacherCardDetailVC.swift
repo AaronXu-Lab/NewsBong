@@ -7,16 +7,18 @@
 //
 
 import UIKit
+import WebKit
 import Ji
-import AVOSCloud
+import RealmSwift
 
-class TeacherCardDetailVC: UIViewController,UIWebViewDelegate {
+class TeacherCardDetailVC: UIViewController,WKNavigationDelegate {
 
     @IBOutlet weak var avatarImg: UIImageView!
     @IBOutlet weak var nameLb: UILabel!
     @IBOutlet weak var titleLb: UILabel!
     @IBOutlet weak var contactLb: UILabel!
-    @IBOutlet weak var webView: UIWebView!
+    @IBOutlet weak var webView: UIView!
+    private let browser = WKWebView()
     
     var avatar:UIImage!
     var name:String!
@@ -33,7 +35,7 @@ class TeacherCardDetailVC: UIViewController,UIWebViewDelegate {
     }
     func initParameters(){
         //初始化title
-        let titleQuery = AVQuery(className: "TeacherTitleContact")
+        let titleQuery = LocalQuery(className: "TeacherTitleContact")
         titleQuery.whereKey("name", equalTo: name)
         titleQuery.whereKey("url", equalTo: String.init(describing: url!))
         titleQuery.findObjectsInBackground { (objects:[Any]?, error:Error?) in
@@ -47,7 +49,7 @@ class TeacherCardDetailVC: UIViewController,UIWebViewDelegate {
             }
         }
         //初始化联系方式
-        let contactQuery = AVQuery(className: "TeacherTitleContact")
+        let contactQuery = LocalQuery(className: "TeacherTitleContact")
         contactQuery.whereKey("name", equalTo: name)
         contactQuery.whereKey("url", equalTo: String.init(describing: url!))
         contactQuery.findObjectsInBackground { (objects:[Any]?, error:Error?) in
@@ -124,10 +126,9 @@ class TeacherCardDetailVC: UIViewController,UIWebViewDelegate {
         nameLb.text = name
         self.navigationItem.title = name
         
-        webView.delegate = self
-        webView.loadHTMLString(webString, baseURL: nil)
-        webView.scrollView.isScrollEnabled = false
-        webView.sizeToFit()
+        browser.frame = webView.bounds; browser.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        webView.addSubview(browser); browser.navigationDelegate = self
+        browser.loadHTMLString(webString, baseURL: url)
         //设置邮箱的点击事件
         let tapGesture = UITapGestureRecognizer.init(target: self, action: #selector(mailTapGesture))
         tapGesture.numberOfTapsRequired = 1
@@ -140,7 +141,7 @@ class TeacherCardDetailVC: UIViewController,UIWebViewDelegate {
         }
     }
     /*func uploadPerson(node:[JiNode],name:String,url:URL,position:String){
-        let object = AVObject(className: "TeacherTitleContact")
+        let object = LocalDocument(className: "TeacherTitleContact")
         object["name"] = name
         object["title"] = node[0].content!
         object["contact"] = node[1].content!
@@ -154,9 +155,10 @@ class TeacherCardDetailVC: UIViewController,UIWebViewDelegate {
             }
         }
     }*/
-    func webViewDidFinishLoad(_ webView: UIWebView) {
-        let height = webView.stringByEvaluatingJavaScript(from: "document.body.scrollHeight")
-        webViewHeight.constant = CGFloat(Int(height!)!)
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        webView.evaluateJavaScript("document.body.scrollHeight") { value, _ in
+            if let height = value as? Double { self.webViewHeight.constant = max(200, CGFloat(height)) }
+        }
     }
 
     override func didReceiveMemoryWarning() {

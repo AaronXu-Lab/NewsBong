@@ -8,7 +8,7 @@
 
 import UIKit
 import EventKit
-import AVOSCloud
+import RealmSwift
 //时区
 let timeZone = 8
 
@@ -21,7 +21,7 @@ class ManualAddCourseVC: UIViewController {
     var grade:String!
     var gradeInNumber = 2014
     var major:String!
-    /**是否分享到云端*/
+    /**课程始终保存到本机*/
     var isShared = true
     @IBOutlet weak var 滑块位置: UIView!
     @IBOutlet weak var dayChooseBtn: UIButton!
@@ -175,8 +175,8 @@ class ManualAddCourseVC: UIViewController {
         return outStr
     }
     @IBAction func shareBtnAction(_ sender: UIButton) {
-        sender.isSelected = !sender.isSelected
-        isShared = sender.isSelected
+        sender.isSelected = true
+        sender.isEnabled = false
     }
     
     @IBAction func addBtnAction(_ sender: UIButton) {
@@ -200,13 +200,13 @@ class ManualAddCourseVC: UIViewController {
             self.pleaseWait()
             //添加至本地日历
             self.insertEventByCourseItemManual(courseItem: self.courseItemManual)
-            //添加至云端
-            if self.isShared{
-                let object = AVObject(className: "CourseItem")
+            //保存到本机
+            if true { // Always save on this device.
+                let object = LocalDocument(className: "CourseItem")
                 object["semester"] = self.semester!
                 object["gradeInNumber"] = self.gradeInNumber
                 object["major"] = self.major!
-                object["isConfirm"] = false
+                object["isConfirm"] = true
                 
                 object["dayInWeek"] = self.courseItemManual.dayInWeek!
                 object["classLowToUp"] = self.courseItemManual.classLowToUp
@@ -220,7 +220,7 @@ class ManualAddCourseVC: UIViewController {
                         self.noticeTop("添加成功", autoClear: true, autoClearTime: 1)
                         //询问是否继续添加
                         let coutinueAlert = UIAlertController(title: "继续添加？", message: "添加成功，是否继续添加？", preferredStyle: .alert)
-                        let yesAction = UIAlertAction(title: "继续", style: UIAlertActionStyle.cancel, handler: { (action) in
+                        let yesAction = UIAlertAction(title: "继续", style: UIAlertAction.Style.cancel, handler: { (action) in
                             self.nameLb.text = ""
                             self.teacherLb.text = ""
                             self.locationLb.text = ""
@@ -242,7 +242,7 @@ class ManualAddCourseVC: UIViewController {
                 self.noticeTop("添加成功", autoClear: true, autoClearTime: 1)
                 //询问是否继续添加
                 let coutinueAlert = UIAlertController(title: "继续添加？", message: "添加成功，是否继续添加？", preferredStyle: .alert)
-                let yesAction = UIAlertAction(title: "继续", style: UIAlertActionStyle.cancel, handler: { (action) in
+                let yesAction = UIAlertAction(title: "继续", style: UIAlertAction.Style.cancel, handler: { (action) in
                     self.nameLb.text = ""
                     self.teacherLb.text = ""
                     self.locationLb.text = ""
@@ -331,7 +331,7 @@ class ManualAddCourseVC: UIViewController {
             }
         } 
         //添加事件
-        eventStore.requestAccess(to: .event, completion: {
+        eventStore.requestFullAccessToEvents(completion: {
             granted, error in
             if (granted) && (error == nil) {
                 //print("granted \(granted)")

@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import AVOSCloud
+import RealmSwift
 import MessageUI
 
 class PersonalCenterVC: UIViewController,MFMailComposeViewControllerDelegate {
@@ -25,44 +25,40 @@ class PersonalCenterVC: UIViewController,MFMailComposeViewControllerDelegate {
         super.viewDidLoad()
         setUI()
         setInteraction()
+        #if DEBUG
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "测试样例", style: .plain, target: self, action: #selector(addDemo))
+        #endif
         //从修改页面接受消息
         NotificationCenter.default.addObserver(self, selector: #selector(reload(notification:)), name: NSNotification.Name(rawValue:"reload"), object: nil)
         // Do any additional setup after loading the view.
     }
+    #if DEBUG
+    @objc private func addDemo() {
+        do {
+            let realm = try Realm()
+            guard realm.object(ofType: LocalArticle.self, forPrimaryKey: "https://example.com/") == nil else { collocationTap(); return }
+            let article = LocalArticle(); article.url = "https://example.com/"; article.name = "【测试】本地收藏与笔记"; article.date = "测试数据"; article.isFavorite = true
+            let note = LocalNote(); note.url = article.url; note.content = "【测试】这条笔记仅保存在本机。"
+            try realm.write { realm.add(article); realm.add(note) }
+            collocationTap()
+        } catch { showLocalError(error) }
+    }
+    #endif
     @objc func reload(notification:Notification){
         self.setUI()
     }
     func setUI(){
         avatar.layer.cornerRadius = avatar.frame.width/2
         
-        //如果有用户，那么设置
-        if let username = UserDefaults.standard.string(forKey: "username"){
-            usernameLb.text = AVUser.current()!["fullname"] as? String
-            usernumberLb.text = UserDefaults.standard.string(forKey: "username")
-            //设置用户头像
-            let queryAvatar = AVQuery(className: "_User")
-            queryAvatar.whereKey("username", equalTo: username)
-            queryAvatar.findObjectsInBackground({ (objects:[Any]?, error:Error?) in
-                if error == nil{
-                    print("用户头像找到了！")
-                    let object = objects?.first as AnyObject
-                    let tempFile = object["avatar"] as? AVFile
-                    tempFile?.getDataInBackground({ (data:Data?, error:Error?) in
-                        self.useravatar.image = UIImage(data: data!)
-                    })
-                }else{
-                    print("寻找用户头像失败:\(error?.localizedDescription)")
-                }
-            })
-            functionBtn.setTitle("退出", for: .normal)
-            functionBtn.setTitleColor(UIColor.red, for: .normal)
-        }else{
-            usernameLb.text = "未登录"
-            usernumberLb.text = "U201417000"
-            useravatar.image = UIImage(named: "缺省头像")
-            functionBtn.setTitle("登录", for: UIControlState.normal)
-            functionBtn.setTitleColor(UIColor.blue, for: .normal)
-        }
+        do {
+            let realm = try Realm()
+            let profile = realm.object(ofType: LocalProfile.self, forPrimaryKey: "local")
+            usernameLb.text = profile?.name ?? "本地用户"
+            usernumberLb.text = "数据仅保存在本机"
+            useravatar.image = profile.flatMap { UIImage(data: $0.avatar) } ?? UIImage(named: "缺省头像")
+        } catch { showLocalError(error) }
+        functionBtn.setTitle("阅读记录", for: .normal)
+        functionBtn.addTarget(self, action: #selector(historyTap), for: .touchUpInside)
     }
     func setInteraction(){
         let personInfoTapGuesture = UITapGestureRecognizer(target: self, action: #selector(personInfoTap))
@@ -78,14 +74,6 @@ class PersonalCenterVC: UIViewController,MFMailComposeViewControllerDelegate {
         feedbackTapGuesture.numberOfTapsRequired = 1
         feedback.addGestureRecognizer(feedbackTapGuesture)
         
-        //对functionBtn配置功能
-        if functionBtn.title(for: .normal) == "登录"{
-            functionBtn.removeTarget(self, action: #selector(functionBtnLogOut), for: .touchUpInside)
-            functionBtn.addTarget(self, action: #selector(functionBtnLogIn), for: .touchUpInside)
-        }else if functionBtn.title(for: .normal) == "退出"{
-            functionBtn.removeTarget(self, action: #selector(functionBtnLogIn), for: .touchUpInside)
-            functionBtn.addTarget(self, action: #selector(functionBtnLogOut), for: .touchUpInside)
-        }
     }
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
@@ -98,6 +86,10 @@ class PersonalCenterVC: UIViewController,MFMailComposeViewControllerDelegate {
         personalInfoModify.name = usernameLb.text!
         personalInfoModify.number = usernumberLb.text!
         self.navigationController?.pushViewController(personalInfoModify, animated: true)
+    }
+    @objc func historyTap() {
+        guard let history = storyboard?.instantiateViewController(withIdentifier: "MyCollection") as? MyCollectionVC else { return }
+        history.showHistory = true; history.title = "阅读记录"; navigationController?.pushViewController(history, animated: true)
     }
     @objc func collocationTap(){
         print("collocationTap")
@@ -117,31 +109,6 @@ class PersonalCenterVC: UIViewController,MFMailComposeViewControllerDelegate {
         }else{
             self.showSendMailErrorAlert()
         }
-        
-    }
-    @objc func functionBtnLogIn(){
-        let signInVC = self.storyboard?.instantiateViewController(withIdentifier: "SignInVC") as! SignInVC
-        //let delegate = UIApplication.shared.delegate as! AppDelegate
-        //delegate.window?.rootViewController = signInVC
-        self.present(signInVC, animated: true) {
-            print("准备登录，那么清除掉缓存")
-        }
-    }
-    @objc func functionBtnLogOut(){
-        //用户注销->弹框询问
-        let alert = UIAlertController(title: "确认退出？", message: "退出登录后只保留最基础的新闻浏览功能", preferredStyle: .alert)
-        let cancel = UIAlertAction(title: "取消", style: .cancel, handler: nil)
-        let ok = UIAlertAction(title: "确认", style: .destructive) { (action) in
-            print("退出登录，重新加载视图")
-            AVUser.logOut()
-            UserDefaults.standard.removeObject(forKey: "username")
-            UserDefaults.standard.removeObject(forKey: "fullname")
-            UserDefaults.standard.synchronize()
-            self.viewDidLoad()
-        }
-        alert.addAction(ok)
-        alert.addAction(cancel)
-        self.present(alert, animated: true, completion: nil)
         
     }
     func alert(error:String,message:String){

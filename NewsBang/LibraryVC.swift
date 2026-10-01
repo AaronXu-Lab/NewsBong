@@ -55,7 +55,7 @@ class LibraryVC: UIViewController,UITableViewDataSource,UITableViewDelegate,UISe
                     self.noticeTop("未找到结果")
                 }else{
                     self.tableView.reloadData()
-                    self.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: UITableViewScrollPosition.top, animated: false)
+                    self.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: UITableView.ScrollPosition.top, animated: false)
                     self.noticeTop("已获取前50条记录")
                 }
                 self.clearAllNotice()
@@ -98,9 +98,9 @@ class LibraryVC: UIViewController,UITableViewDataSource,UITableViewDelegate,UISe
     func seachByUrl(url:String) -> SearchResult{
         
         let jiDoc = Ji(htmlURL: URL(string: url)!)
-        var jiNode = jiDoc?.xPath("//body/table")?.first?.children[9].firstChild?.firstChild?.children
+        var jiNode = jiDoc?.xPath("//body/table")?.first?.children[safe: 9]?.firstChild?.firstChild?.children
         if jiNode == nil {
-            jiNode = jiDoc?.xPath("//body/table")?.first?.children[7].firstChild?.firstChild?.children
+            jiNode = jiDoc?.xPath("//body/table")?.first?.children[safe: 7]?.firstChild?.firstChild?.children
         }
         //如果只找到一条数据的话，会直接进入结果页，因此要判断
         let countNode = jiDoc?.xPath("//*[@id=\"bibContent\"]/div/div/div/i")?.first
@@ -123,14 +123,15 @@ class LibraryVC: UIViewController,UITableViewDataSource,UITableViewDelegate,UISe
             if nodeClassInfo == "browseHeader"{
                 //获取结果的数量
                 var resultCountStr = jiNode![i].firstChild?.content
-                resultCountStr = "\((resultCountStr!.split(separator: "共")[1]))"
+                guard let parts = resultCountStr?.split(separator: "共"), parts.count > 1 else { continue }
+                resultCountStr = String(parts[1])
                 resultCountStr = resultCountStr!.replacingOccurrences(of: " ", with: "").replacingOccurrences(of: ")\n", with: "")
-                resultCount = Int(resultCountStr!)!
+                resultCount = Int(resultCountStr ?? "") ?? 0
                 print("查询结果数量:\(resultCount)")
             }else if nodeClassInfo == nil && jiNode![i].firstChild != nil{
                 let contentNode = jiNode![i].firstChild?.firstChild?.firstChild
                 if var contentNode = contentNode{
-                    if contentNode.children.count >= 3{
+                    if contentNode.children.count >= 4{
                         //如果没有给图的话,给一个默认的图
                         var imageUrl = "http://2016.bookgo.com.cn/book/apiex/getbookimage/isbn/7506603756"
                         if contentNode.children[2].children.count > 3{
@@ -138,14 +139,16 @@ class LibraryVC: UIViewController,UITableViewDataSource,UITableViewDelegate,UISe
                         }
                         //print("图片地址:\(imageUrl!)")
                         contentNode = contentNode.children[3]
-                        let nextUrl = "http://ftp.lib.hust.edu.cn\((contentNode.children[1].firstChild?.attributes["href"])!)"
+                        guard contentNode.children.count > 3, let href = contentNode.children[1].firstChild?.attributes["href"] else { continue }
+                        let nextUrl = "http://ftp.lib.hust.edu.cn\(href)"
                         //print(nextUrl)
                         let title = contentNode.children[1].content?.replacingOccurrences(of: "\n", with: "")
                         let infos = contentNode.children[3].content?.split(separator: "\n")
                         //print("项目\n\(contentNode.children[3])")
-                        var author = "\(infos![0])"
-                        var publish = "\(infos![1])"
-                        var bio = (infos?.count)! >= 3 ? "\(infos![2])".contains("Website") ? "暂无简介":"\(infos![2])" : "暂无简介"
+                        guard let infos = infos, infos.count >= 2, doubleArrayOne >= 0 else { continue }
+                        var author = "\(infos[0])"
+                        var publish = "\(infos[1])"
+                        var bio = infos.count >= 3 ? "\(infos[2])".contains("Website") ? "暂无简介":"\(infos[2])" : "暂无简介"
                         //如果bio=="更多..."那么说明这个项目没有作者和出版物，那么我们要做出一些调整
                         if bio == "更多..."{
                             bio = author
@@ -155,7 +158,7 @@ class LibraryVC: UIViewController,UITableViewDataSource,UITableViewDelegate,UISe
                         
                         author = author.replacingOccurrences(of: " ", with: "") == "" ? "暂无简介" : author
                         publish = publish.replacingOccurrences(of: " ", with: "") == "" ? "暂无出版信息" : publish
-                        let book = BookInfo(title: title!, author: author, publish: publish, bio: bio, nextUrl: nextUrl, imageUrl: imageUrl)
+                        let book = BookInfo(title: title ?? "无标题", author: author, publish: publish, bio: bio, nextUrl: nextUrl, imageUrl: imageUrl)
                         doubleArray[doubleArrayOne].append(book)
                         //print(book.toString() + "\n")
                     }
@@ -170,9 +173,9 @@ class LibraryVC: UIViewController,UITableViewDataSource,UITableViewDelegate,UISe
         }
         
         //将最后的subhead上限变成50
-        if resultCount > 50{
+        if resultCount > 50, !doubleArrayTitle.isEmpty {
             var tempStr = doubleArrayTitle[doubleArrayTitle.count-1]
-            tempStr = tempStr.replacingCharacters(in: (tempStr.range(of: "-")?.upperBound)!...(tempStr.range(of: " 条记录")?.lowerBound)!, with: "50").replacingOccurrences(of: "条记录", with: " 条记录")
+            if let low = tempStr.range(of: "-")?.upperBound, let high = tempStr.range(of: " 条记录")?.lowerBound, low <= high { tempStr.replaceSubrange(low..<high, with: "50") }
             doubleArrayTitle[doubleArrayTitle.count-1] = tempStr
         }
         
@@ -232,3 +235,5 @@ class LibraryVC: UIViewController,UITableViewDataSource,UITableViewDelegate,UISe
         }
     }
 }
+
+extension Array { subscript(safe index: Int) -> Element? { indices.contains(index) ? self[index] : nil } }
